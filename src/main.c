@@ -6,20 +6,12 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/03/28 17:47:26 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/03/28 20:34:20 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/philo.h"
 
-/*
-Your program should take the following arguments:
-argv[1] = number_of_philosophers 
-argv[2] = time_to_die (ms)
-argv[3] = time_to_eat (ms)
-argv[4] = time_to_sleep (ms)
-argv[5] = [number_of_times_each_philosopher_must_eat] (OPTIONAL)
-*/
 void    write_state(t_philos *p, char *state)
 {
     size_t  timestamp;
@@ -92,6 +84,20 @@ size_t  get_time()
     return ((time.tv_sec * 1000) + (time.tv_usec / 1000));
 }
 
+void    free_and_destroy(char *s, t_monitor *m, t_philos *p)
+{
+    int i;
+    
+    if (s)
+        write(2, &s, ft_strlen(s));
+    free(p);
+    free(m->forks);
+    i = -1;
+    while (++i < p->philo_amt)
+        pthread_mutex_destroy(&m->forks[i]);
+    pthread_mutex_destroy(&m->write_lock);
+}
+
 int create_threads(t_philos *p, t_monitor *m)
 {
     int i;
@@ -103,7 +109,14 @@ int create_threads(t_philos *p, t_monitor *m)
         p[i].last_meal = m->start_time;
     i = -1;
     while (++i < m->philo_amt)
-        pthread_create(&p[i].philo_t, NULL, &philosophize, (void *)&p[i]);
+    {
+        if (pthread_create(&p[i].philo_t, NULL, &philosophize, (void *)&p[i]) != 0)
+        {
+            while(--i >= 0)
+                pthread_join(p[i].philo_t, NULL);
+            return (free_and_destroy("failed to create thread\n", m, p), 1);
+        }
+    }
     i = -1;
     pthread_join(m->monitor, NULL);
     while (++i < m->philo_amt)
@@ -111,23 +124,29 @@ int create_threads(t_philos *p, t_monitor *m)
     return (0);
 }
 
-int create_mutexes(t_monitor *m, char **argv)
+int create_mutexes(t_monitor *m)
 {
     int i;
     
-    m->philo_amt = ft_atoi(argv[1]);
-    m->forks = malloc(sizeof(pthread_mutex_t) * m->philo_amt);
-    if (!m->forks)
-        return (1);
     i = -1;
     while (++i < m->philo_amt)
     {
-        if (pthread_mutex_init(&m->forks[i++], NULL) != 0)
+        if (pthread_mutex_init(&m->forks[i], NULL) != 0)
+        {
+            while (--i >= 0)
+                pthread_mutex_destroy(&m->forks[i]);
+            write(2, "failed to initialize mutex\n", 28);
             return (1);
-
+        }
     }
     if (pthread_mutex_init(&m->write_lock, NULL) != 0)
+    {
+        i = -1;
+        while (++i < m->philo_amt)
+            pthread_mutex_destroy(&m->forks[i]);
+        write(2, "failed to initialize mutex\n", 28);
         return (1);
+    }
     return (0);
 }
 
@@ -209,14 +228,19 @@ int main(int argc, char **argv)
     
     if (check_arguments(argv, argc))
         return (1);
-    philos = malloc(sizeof(t_philos) * ft_atoi(argv[1]));
+    monitor.philo_amt = ft_atoi(argv[1]);
+    philos = malloc(sizeof(t_philos) * monitor.philo_amt);
     if (!philos)
         return (write(2, "malloc for philos failed\n", 26), 1);
     monitor.philos = philos;
-    if (create_mutexes(&monitor, argv))
-        return (1);
+    monitor.forks = malloc(sizeof(pthread_mutex_t) * monitor.philo_amt);
+    if (!monitor.forks)
+        return (free(philos), write(2, "malloc for forks failed\n", 25), 1);
+    if (create_mutexes(&monitor))
+        return (free(philos), free(monitor.forks), 1);
     init_philosophers(philos, &monitor, argv, argc);
     if (create_threads(philos, &monitor))
         return (1);
+    free_and_destroy(NULL, &monitor, philos);
     return (0);
 }
