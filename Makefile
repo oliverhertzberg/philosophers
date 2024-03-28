@@ -6,12 +6,12 @@
 #    By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/21 15:18:39 by ohertzbe          #+#    #+#              #
-#    Updated: 2024/03/22 14:27:20 by ohertzbe         ###   ########.fr        #
+#    Updated: 2024/03/25 14:05:39 by ohertzbe         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC := cc
-CFLAGS := -Wall -Wextra -Werror
+CFLAGS := -g -Wall -Wextra -Werror
 NAME := philo
 
 HEADER := -I ./philo.h

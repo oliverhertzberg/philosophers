@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/03/22 17:00:17 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/03/28 17:47:26 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,88 +20,203 @@ argv[3] = time_to_eat (ms)
 argv[4] = time_to_sleep (ms)
 argv[5] = [number_of_times_each_philosopher_must_eat] (OPTIONAL)
 */
-
-void    invalid_arguments(void)
+void    write_state(t_philos *p, char *state)
 {
-    printf("Invalid arguments!\n"
-    "Please provide the following arguments:\n"
-    "1: number_of_philosophers, 2: time_to_die(ms), 3: time_to_eat(ms), 4: time_to_sleep(ms), "
-    "5(OPTIONAL): [number_of_times_each_philosopher_must_eat]\n"
-    );
-    exit(1);
-}
-
-void    error_exit(char *s, int exitcode)
-{
-    printf("%s\n", s);
-    exit (exitcode);    
-}
-
-void    init_variables(t_args *a, int argc, char **argv)
-{
-    a->philo_amt = ft_atoi(argv[1]);
-    a->ms_die = ft_atoi(argv[2]);
-    a->ms_eat = ft_atoi(argv[3]);
-    a->ms_sleep = ft_atoi(argv[4]);
-    if (argc == 6)
-        a->meal_amt = ft_atoi(argv[5]); 
-    else
-        a->meal_amt = -1;
-}
-void    *routine(void *philo)
-{
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-    sleep(3);
-    gettimeofday(&end, NULL);
-    printf("P%d and time alive = %ldms\n", *(int *)philo, ((end.tv_sec - start.tv_sec) * 1000));
-    free (philo);
-    return (NULL);
-}
-
-void    create_threads(t_args *a)
-{
-    int *philo;
-    int i;
+    size_t  timestamp;
     
-    a->philo_t = malloc(sizeof(pthread_t) * a->philo_amt);
-    if (!a->philo_t)
-        error_exit("malloc failed for philo_t\n", 1);
-    i = 0;
-    while (i < a->philo_amt)
+    timestamp = get_time() - *p->start_time;
+    pthread_mutex_lock(p->write_lock);
+    printf("%zu %d %s\n", timestamp, p->philo_num, state);
+    pthread_mutex_unlock(p->write_lock);
+}
+
+void    think(t_philos *p)
+{
+    write_state(p, "is thinking");
+}
+
+void    snooze(t_philos *p)
+{
+    write_state(p, "is sleeping");
+    usleep(p->ms_to_sleep * 1000);
+}
+
+void    eat(t_philos *p)
+{
+    pthread_mutex_lock(p->r_fork);
+    write_state(p, "has taken a fork");
+    pthread_mutex_lock(p->l_fork);
+    write_state(p, "has taken a fork");
+    p->last_meal = get_time();
+    p->meals_eaten++;
+    write_state(p, "is eating");
+    usleep(p->ms_to_eat * 1000);
+    pthread_mutex_unlock(p->r_fork);
+    pthread_mutex_unlock(p->l_fork);
+}
+
+void    *philosophize(void *philo)
+{
+    t_philos *p;
+
+    p = (t_philos *)philo;
+    if (p->philo_num % 2 == 0)
+        usleep(1000);
+    //while(!*p->death)
+    //{
+    eat(p);
+    think(p);
+    snooze(p);
+    //}
+    return (philo);
+}
+
+/*void    *supervise(void *monitor)
+{
+    t_monitor *m;
+
+    m = (t_monitor *)monitor;
+    while(1)
     {
-        philo = malloc(sizeof(int));
-        *philo = i + 1;
-        pthread_create(&a->philo_t[i++], NULL, &routine, (void *)philo);
+        if (mortality_monitor() || satiety_sleuth())
+            break ;
     }
-    i = 0;
-    while (i < a->philo_amt)
-        pthread_join(a->philo_t[i++], NULL);
+    return (monitor);
+}*/
+
+size_t  get_time()
+{
+    struct timeval time;
+    
+    gettimeofday(&time, NULL);
+    return ((time.tv_sec * 1000) + (time.tv_usec / 1000));
 }
 
-void    create_mutex_forks(t_args *a)
+int create_threads(t_philos *p, t_monitor *m)
 {
     int i;
     
-    a->mutexes = malloc(sizeof(pthread_mutex_t) * a->philo_amt);
-    if (!a->mutexes)
-        error_exit("malloc failed for mutexes\n", 1);
-    i = 0;
-    while (i < a->philo_amt)
-        if (pthread_mutex_init(&a->mutexes[i++], NULL) != 0)
-            error_exit("failed to initialize mutexes\n", 1);
+    //pthread_create(&m->monitor, NULL, &supervise, (void *)m);
+    m->start_time = get_time();
+    i = -1;
+    while (++i < m->philo_amt)
+        p[i].last_meal = m->start_time;
+    i = -1;
+    while (++i < m->philo_amt)
+        pthread_create(&p[i].philo_t, NULL, &philosophize, (void *)&p[i]);
+    i = -1;
+    pthread_join(m->monitor, NULL);
+    while (++i < m->philo_amt)
+        pthread_join(p[i].philo_t, NULL);
+    return (0);
+}
+
+int create_mutexes(t_monitor *m, char **argv)
+{
+    int i;
+    
+    m->philo_amt = ft_atoi(argv[1]);
+    m->forks = malloc(sizeof(pthread_mutex_t) * m->philo_amt);
+    if (!m->forks)
+        return (1);
+    i = -1;
+    while (++i < m->philo_amt)
+    {
+        if (pthread_mutex_init(&m->forks[i++], NULL) != 0)
+            return (1);
+
+    }
+    if (pthread_mutex_init(&m->write_lock, NULL) != 0)
+        return (1);
+    return (0);
+}
+
+void get_arguments(t_monitor *m, char **argv, int argc)
+{
+    m->ms_to_die = ft_atoi(argv[2]);
+    m->ms_to_eat = ft_atoi(argv[3]);
+    m->ms_to_sleep = ft_atoi(argv[4]);
+    if (argc == 6)
+        m->meals_to_eat = ft_atoi(argv[5]); 
+    else
+        m->meals_to_eat = -1;
+    m->death = 0;
+    m->start_time = 0;
+}
+
+void    init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc)
+{
+    int i;
+
+    get_arguments(m, argv, argc);
+    i = -1;
+    while (++i < m->philo_amt)
+    {
+        p[i].philo_num = i + 1;
+        p[i].meals_eaten = 0;
+        p[i].philo_amt = m->philo_amt;
+        p[i].meals_to_eat = m->meals_to_eat;
+        p[i].ms_to_die = m->ms_to_die;
+        p[i].ms_to_eat = m->ms_to_eat;
+        p[i].ms_to_sleep = m->ms_to_sleep;
+        p[i].write_lock = &m->write_lock;
+        if (i == 0)
+            p[i].r_fork = &m->forks[m->philo_amt - 1];
+        else
+            p[i].r_fork = &m->forks[i - 1];
+        p[i].l_fork = &m->forks[i];
+        p[i].death = &m->death;
+        p[i].start_time = &m->start_time;
+    }
+}
+
+int is_numeric(char *s)
+{
+    if (!s)
+        return (0);
+    if (*s == '-' || *s == '+')
+        s++;
+    while (*s)
+    {
+        if (*s < '0' || *s > '9')
+            return (0);
+        s++;
+    }
+    return (1);
+}
+
+int check_arguments(char **argv, int argc)
+{
+    if (argc < 5 || argc > 6)
+        return (write(2, "Error: Invalid number of arguments\n", 36), 1);
+    if (!is_numeric(argv[1]) || ft_atoi(argv[1]) <= 0 || ft_atoi(argv[1]) > 200)
+        return (write(2, "Error: Invalid number of philosophers\n", 39), 1);
+    if (!is_numeric(argv[2]) || ft_atoi(argv[2]) <= 0)
+        return (write(2, "Error: Invalid time to die\n", 28), 1);
+    if (!is_numeric(argv[3]) || ft_atoi(argv[3]) <= 0)
+        return (write(2, "Error: Invalid time to eat\n", 28), 1);
+    if (!is_numeric(argv[4]) || ft_atoi(argv[4]) <= 0)
+        return (write(2, "Error: Invalid time to sleep\n", 30), 1);
+    if (argc == 6 && (!is_numeric(argv[5]) || ft_atoi(argv[5]) <= 0))
+        return (write(2, "Error: Invalid argument for times to eat\n", 42), 1);
+    return (0);
 }
 
 int main(int argc, char **argv)
 {
-    t_args a;
+    t_monitor  monitor;
+    t_philos *philos;
     
-    if (argc < 5 || argc > 6)
-        invalid_arguments();
-    init_variables(&a, argc, argv);
-    create_mutex_forks(&a);
-    create_threads(&a);
-    free (a.philo_t);
-    free (a.mutexes);
+    if (check_arguments(argv, argc))
+        return (1);
+    philos = malloc(sizeof(t_philos) * ft_atoi(argv[1]));
+    if (!philos)
+        return (write(2, "malloc for philos failed\n", 26), 1);
+    monitor.philos = philos;
+    if (create_mutexes(&monitor, argv))
+        return (1);
+    init_philosophers(philos, &monitor, argv, argc);
+    if (create_threads(philos, &monitor))
+        return (1);
     return (0);
 }
