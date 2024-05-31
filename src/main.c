@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/03/28 20:34:20 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/05/31 19:29:14 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 
 void    write_state(t_philos *p, char *state)
 {
-    size_t  timestamp;
+    int  timestamp;
     
     timestamp = get_time() - *p->start_time;
     pthread_mutex_lock(p->write_lock);
-    printf("%zu %d %s\n", timestamp, p->philo_num, state);
+    printf("%d %d %s\n", timestamp, p->philo_num, state);
     pthread_mutex_unlock(p->write_lock);
 }
 
@@ -33,14 +33,16 @@ void    snooze(t_philos *p)
     usleep(p->ms_to_sleep * 1000);
 }
 
-void    eat(t_philos *p)
+void    eat(t_philos *p)    
 {
     pthread_mutex_lock(p->r_fork);
     write_state(p, "has taken a fork");
     pthread_mutex_lock(p->l_fork);
     write_state(p, "has taken a fork");
+    pthread_mutex_lock(&p->meal_lock);
     p->last_meal = get_time();
     p->meals_eaten++;
+    pthread_mutex_unlock(&p->meal_lock);
     write_state(p, "is eating");
     usleep(p->ms_to_eat * 1000);
     pthread_mutex_unlock(p->r_fork);
@@ -54,27 +56,58 @@ void    *philosophize(void *philo)
     p = (t_philos *)philo;
     if (p->philo_num % 2 == 0)
         usleep(1000);
-    //while(!*p->death)
-    //{
-    eat(p);
-    think(p);
-    snooze(p);
-    //}
+    pthread_mutex_lock(p->death_lock);
+    while(!*p->death)
+    {
+        pthread_mutex_unlock(p->death_lock);
+        eat(p);
+        think(p);
+        snooze(p);
+        pthread_mutex_lock(p->death_lock);
+    }
+    pthread_mutex_unlock(p->death_lock);
     return (philo);
 }
 
-/*void    *supervise(void *monitor)
+int is_dead_or_full(t_monitor *m)
 {
-    t_monitor *m;
+    int i;
 
-    m = (t_monitor *)monitor;
+    i = -1;
+    while (++i < m->philo_amt)
+    {
+        pthread_mutex_lock(&m->philos[i].meal_lock);
+        if ((m->philos[i].last_meal - m->start_time) > m->ms_to_eat)
+        {
+            pthread_mutex_unlock(&m->philos[i].meal_lock);
+            pthread_mutex_lock(&m->death_lock);
+            m->death = 1;
+            pthread_mutex_unlock(&m->death_lock);
+            write_state(&m->philos[i], "died");
+            return (1);
+        }
+        else if (m->meals_to_eat && m->philos[i].meals_eaten >= m->meals_to_eat)
+        {
+            pthread_mutex_unlock(&m->philos[i].meal_lock);
+            pthread_mutex_lock(&m->death_lock);
+            m->death = 1;
+            pthread_mutex_unlock(&m->death_lock);
+            write_state(&m->philos[i], "ate too much");
+            return (1);
+        }
+        pthread_mutex_unlock(&m->philos[i].meal_lock);
+    }
+    return (0);
+}
+
+void    supervise(t_monitor *m)
+{   
     while(1)
     {
-        if (mortality_monitor() || satiety_sleuth())
+        if (is_dead_or_full(m))
             break ;
     }
-    return (monitor);
-}*/
+}
 
 size_t  get_time()
 {
@@ -102,7 +135,6 @@ int create_threads(t_philos *p, t_monitor *m)
 {
     int i;
     
-    //pthread_create(&m->monitor, NULL, &supervise, (void *)m);
     m->start_time = get_time();
     i = -1;
     while (++i < m->philo_amt)
@@ -117,8 +149,8 @@ int create_threads(t_philos *p, t_monitor *m)
             return (free_and_destroy("failed to create thread\n", m, p), 1);
         }
     }
+    supervise(m);
     i = -1;
-    pthread_join(m->monitor, NULL);
     while (++i < m->philo_amt)
         pthread_join(p[i].philo_t, NULL);
     return (0);
@@ -131,6 +163,7 @@ int create_mutexes(t_monitor *m)
     i = -1;
     while (++i < m->philo_amt)
     {
+        pthread_mutex_init(&(m->philos[i].meal_lock), NULL);
         if (pthread_mutex_init(&m->forks[i], NULL) != 0)
         {
             while (--i >= 0)
@@ -147,6 +180,7 @@ int create_mutexes(t_monitor *m)
         write(2, "failed to initialize mutex\n", 28);
         return (1);
     }
+    pthread_mutex_init(&m->death_lock, NULL);
     return (0);
 }
 
@@ -158,7 +192,7 @@ void get_arguments(t_monitor *m, char **argv, int argc)
     if (argc == 6)
         m->meals_to_eat = ft_atoi(argv[5]); 
     else
-        m->meals_to_eat = -1;
+        m->meals_to_eat = 0;
     m->death = 0;
     m->start_time = 0;
 }
@@ -179,6 +213,7 @@ void    init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc)
         p[i].ms_to_eat = m->ms_to_eat;
         p[i].ms_to_sleep = m->ms_to_sleep;
         p[i].write_lock = &m->write_lock;
+        p[i].death_lock = &m->death_lock;
         if (i == 0)
             p[i].r_fork = &m->forks[m->philo_amt - 1];
         else
