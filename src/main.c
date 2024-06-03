@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/05/31 19:29:14 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/03 20:17:47 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,20 +33,28 @@ void    snooze(t_philos *p)
     usleep(p->ms_to_sleep * 1000);
 }
 
-void    eat(t_philos *p)    
+int eat(t_philos *p)    
 {
     pthread_mutex_lock(p->r_fork);
     write_state(p, "has taken a fork");
     pthread_mutex_lock(p->l_fork);
     write_state(p, "has taken a fork");
     pthread_mutex_lock(&p->meal_lock);
-    p->last_meal = get_time();
+    p->current_meal = get_time();
+    if (p->current_meal - p->last_meal > p->ms_to_die)
+    {
+        pthread_mutex_unlock(&p->meal_lock);
+        pthread_mutex_unlock(p->r_fork);
+        pthread_mutex_unlock(p->l_fork);
+        return (0);
+    }
     p->meals_eaten++;
     pthread_mutex_unlock(&p->meal_lock);
     write_state(p, "is eating");
     usleep(p->ms_to_eat * 1000);
     pthread_mutex_unlock(p->r_fork);
     pthread_mutex_unlock(p->l_fork);
+    return (1);
 }
 
 void    *philosophize(void *philo)
@@ -54,13 +62,18 @@ void    *philosophize(void *philo)
     t_philos *p;
 
     p = (t_philos *)philo;
+    p->last_meal = get_time();
     if (p->philo_num % 2 == 0)
         usleep(1000);
     pthread_mutex_lock(p->death_lock);
     while(!*p->death)
     {
         pthread_mutex_unlock(p->death_lock);
-        eat(p);
+        if (!(eat(p)))
+        {
+            pthread_mutex_lock(p->death_lock);
+            break ;
+        }
         think(p);
         snooze(p);
         pthread_mutex_lock(p->death_lock);
@@ -77,8 +90,9 @@ int is_dead_or_full(t_monitor *m)
     while (++i < m->philo_amt)
     {
         pthread_mutex_lock(&m->philos[i].meal_lock);
-        if ((m->philos[i].last_meal - m->start_time) > m->ms_to_eat)
+        if ((m->philos[i].current_meal - m->philos[i].last_meal) > m->ms_to_die)
         {
+            printf("%d\n", m->philos[i].current_meal - m->philos[i].last_meal);
             pthread_mutex_unlock(&m->philos[i].meal_lock);
             pthread_mutex_lock(&m->death_lock);
             m->death = 1;
@@ -109,12 +123,12 @@ void    supervise(t_monitor *m)
     }
 }
 
-size_t  get_time()
+uint64_t  get_time()
 {
     struct timeval time;
     
     gettimeofday(&time, NULL);
-    return ((time.tv_sec * 1000) + (time.tv_usec / 1000));
+    return (((uint64_t)time.tv_sec * 1000) + (time.tv_usec / 1000));
 }
 
 void    free_and_destroy(char *s, t_monitor *m, t_philos *p)

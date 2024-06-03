@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/05/31 19:00:22 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/03 20:01:41 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,7 @@ typedef struct s_philos
     pthread_mutex_t *death_lock;
     unsigned int    philo_num;
     int last_meal;
+    int current_meal;
     int meals_to_eat;
     int meals_eaten;
     long philo_amt;
@@ -56,9 +57,9 @@ typedef struct s_monitor
 }   t_monitor;
 
 // utils
-long            ft_atoi(const char *str);
-size_t  ft_strlen(char *s);
-size_t  get_time();
+long        ft_atoi(const char *str);
+size_t      ft_strlen(char *s);
+uint64_t    get_time();
 
 
 #endif
