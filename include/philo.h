@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/03 23:49:44 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/04 01:20:41 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,10 +56,31 @@ typedef struct s_monitor
     int death;
 }   t_monitor;
 
-// utils
-long    ft_atoi(const char *str);
+/* cleaning.c */
+void    destroy_meal_mutex(t_monitor *m);
+void    destroy_fork_mutex(t_monitor *m);
+void    free_and_destroy(char *s, t_monitor *m, t_philos *p);
+/* create_mutexes.c*/
+int     init_meal_mutex(t_monitor *m);
+int     init_fork_mutex(t_monitor *m);
+int     create_mutexes(t_monitor *m);
+/* get_time.c */
+long long  get_time();
+/* init_philos.c */
+void    get_arguments(t_monitor *m, char **argv, int argc);
+void    init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc);
+/* philo_functions.c */
+void    think(t_philos *p);
+void    snooze(t_philos *p);
+int     eat(t_philos *p); 
+void    *philosophize(void *philo);
+/* supervisor.c */
+int     is_dead_or_full(t_monitor *m);
+void    supervise(t_monitor *m);
+/* utils .c */
+long	ft_atoi(const char *str);
 size_t  ft_strlen(char *s);
-long long   get_time();
-
+/* write_state.c */
+void    write_state(t_philos *p, char *state);
 
 #endif

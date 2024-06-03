@@ -6,7 +6,7 @@
 #    By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/21 15:18:39 by ohertzbe          #+#    #+#              #
-#    Updated: 2024/05/31 16:26:38 by ohertzbe         ###   ########.fr        #
+#    Updated: 2024/06/04 01:22:00 by ohertzbe         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,7 +15,9 @@ CFLAGS := -g -Wall -Wextra -Werror
 NAME := philo
 
 HEADER := -I ./philo.h
-SRC := src/main.c src/ft_atoi.c src/utils.c
+SRC := src/main.c src/utils.c src/cleaning.c src/create_mutexes.c \
+	src/get_time.c src/init_philos.c src/philo_functions.c \
+	src/supervisor.c src/write_state.c
 OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
 
 all: $(NAME)
