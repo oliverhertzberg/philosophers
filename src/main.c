@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/03 20:17:47 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/04 00:54:29 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 
 void    write_state(t_philos *p, char *state)
 {
-    int  timestamp;
+    long long   timestamp;
     
     timestamp = get_time() - *p->start_time;
     pthread_mutex_lock(p->write_lock);
-    printf("%d %d %s\n", timestamp, p->philo_num, state);
+    printf("%lld %d %s\n", timestamp, p->philo_num, state);
     pthread_mutex_unlock(p->write_lock);
 }
 
@@ -40,8 +40,8 @@ int eat(t_philos *p)
     pthread_mutex_lock(p->l_fork);
     write_state(p, "has taken a fork");
     pthread_mutex_lock(&p->meal_lock);
-    p->current_meal = get_time();
-    if (p->current_meal - p->last_meal > p->ms_to_die)
+    p->last_meal = get_time() - p->end_meal;
+    if (p->last_meal > p->ms_to_die)
     {
         pthread_mutex_unlock(&p->meal_lock);
         pthread_mutex_unlock(p->r_fork);
@@ -54,6 +54,7 @@ int eat(t_philos *p)
     usleep(p->ms_to_eat * 1000);
     pthread_mutex_unlock(p->r_fork);
     pthread_mutex_unlock(p->l_fork);
+    p->end_meal = get_time();
     return (1);
 }
 
@@ -62,7 +63,7 @@ void    *philosophize(void *philo)
     t_philos *p;
 
     p = (t_philos *)philo;
-    p->last_meal = get_time();
+    p->end_meal = *(p->start_time);
     if (p->philo_num % 2 == 0)
         usleep(1000);
     pthread_mutex_lock(p->death_lock);
@@ -90,15 +91,13 @@ int is_dead_or_full(t_monitor *m)
     while (++i < m->philo_amt)
     {
         pthread_mutex_lock(&m->philos[i].meal_lock);
-        if ((m->philos[i].current_meal - m->philos[i].last_meal) > m->ms_to_die)
+        if (m->philos[i].last_meal > m->ms_to_die)
         {
-            printf("%d\n", m->philos[i].current_meal - m->philos[i].last_meal);
             pthread_mutex_unlock(&m->philos[i].meal_lock);
             pthread_mutex_lock(&m->death_lock);
             m->death = 1;
             pthread_mutex_unlock(&m->death_lock);
-            write_state(&m->philos[i], "died");
-            return (1);
+            return (write_state(&m->philos[i], "died"), 1);
         }
         else if (m->meals_to_eat && m->philos[i].meals_eaten >= m->meals_to_eat)
         {
@@ -106,8 +105,7 @@ int is_dead_or_full(t_monitor *m)
             pthread_mutex_lock(&m->death_lock);
             m->death = 1;
             pthread_mutex_unlock(&m->death_lock);
-            write_state(&m->philos[i], "ate too much");
-            return (1);
+            return (write_state(&m->philos[i], "ate too much"), 1);
         }
         pthread_mutex_unlock(&m->philos[i].meal_lock);
     }
@@ -123,26 +121,44 @@ void    supervise(t_monitor *m)
     }
 }
 
-uint64_t  get_time()
+long long  get_time()
 {
-    struct timeval time;
+    struct timeval tv;
+    long long   timestamp;
     
-    gettimeofday(&time, NULL);
-    return (((uint64_t)time.tv_sec * 1000) + (time.tv_usec / 1000));
+    gettimeofday(&tv, NULL);
+    timestamp = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+    return (timestamp);
+}
+
+void    destroy_meal_mutex(t_monitor *m)
+{
+    int i;
+
+    i = -1;
+    while (++i < m->philo_amt)
+        pthread_mutex_destroy(&(m->philos[i].meal_lock));
+}
+
+void    destroy_fork_mutex(t_monitor *m)
+{
+    int i;
+
+    i = -1;
+    while (++i < m->philo_amt)
+        pthread_mutex_destroy(&m->forks[i]);
 }
 
 void    free_and_destroy(char *s, t_monitor *m, t_philos *p)
-{
-    int i;
-    
+{   
     if (s)
         write(2, &s, ft_strlen(s));
+    destroy_fork_mutex(m);
+    destroy_meal_mutex(m);
+    pthread_mutex_destroy(&m->death_lock);
+    pthread_mutex_destroy(&m->write_lock);
     free(p);
     free(m->forks);
-    i = -1;
-    while (++i < p->philo_amt)
-        pthread_mutex_destroy(&m->forks[i]);
-    pthread_mutex_destroy(&m->write_lock);
 }
 
 int create_threads(t_philos *p, t_monitor *m)
@@ -152,50 +168,83 @@ int create_threads(t_philos *p, t_monitor *m)
     m->start_time = get_time();
     i = -1;
     while (++i < m->philo_amt)
-        p[i].last_meal = m->start_time;
-    i = -1;
-    while (++i < m->philo_amt)
     {
         if (pthread_create(&p[i].philo_t, NULL, &philosophize, (void *)&p[i]) != 0)
         {
+            m->death = 1;
             while(--i >= 0)
                 pthread_join(p[i].philo_t, NULL);
-            return (free_and_destroy("failed to create thread\n", m, p), 1);
+            return (free_and_destroy("failed to create thread\n", m, p), 0);
         }
     }
     supervise(m);
     i = -1;
     while (++i < m->philo_amt)
         pthread_join(p[i].philo_t, NULL);
-    return (0);
+    return (1);
 }
 
-int create_mutexes(t_monitor *m)
+int init_meal_mutex(t_monitor *m)
 {
     int i;
-    
+
+    i = -1;
+    while (i++ < m->philo_amt)
+    {
+        if (pthread_mutex_init(&(m->philos[i].meal_lock), NULL) != 0)
+        {
+            while (--i >= 0)
+                pthread_mutex_destroy(&(m->philos[i].meal_lock));
+            write(2, "failed to initialize mutex\n", 28);
+            return (0);
+        }
+    }
+    return (1);
+}
+
+int init_fork_mutex(t_monitor *m)
+{
+    int i;
+
     i = -1;
     while (++i < m->philo_amt)
     {
-        pthread_mutex_init(&(m->philos[i].meal_lock), NULL);
         if (pthread_mutex_init(&m->forks[i], NULL) != 0)
         {
             while (--i >= 0)
                 pthread_mutex_destroy(&m->forks[i]);
             write(2, "failed to initialize mutex\n", 28);
-            return (1);
+            return (0);
         }
+    }
+    return (1);
+}
+
+int create_mutexes(t_monitor *m)
+{
+    if (!init_meal_mutex(m))
+        return (0);
+    if (!init_fork_mutex(m))
+    {
+        destroy_meal_mutex(m);
+        return (0);
     }
     if (pthread_mutex_init(&m->write_lock, NULL) != 0)
     {
-        i = -1;
-        while (++i < m->philo_amt)
-            pthread_mutex_destroy(&m->forks[i]);
+        destroy_meal_mutex(m);
+        destroy_fork_mutex(m);
         write(2, "failed to initialize mutex\n", 28);
-        return (1);
+        return (0);
     }
-    pthread_mutex_init(&m->death_lock, NULL);
-    return (0);
+    if (pthread_mutex_init(&m->death_lock, NULL) != 0)
+    {
+        destroy_meal_mutex(m);
+        destroy_fork_mutex(m);
+        pthread_mutex_destroy(&m->write_lock);
+        write(2, "failed to initialize mutex\n", 28);
+        return (0);
+    }
+    return (1);
 }
 
 void get_arguments(t_monitor *m, char **argv, int argc)
@@ -226,6 +275,7 @@ void    init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc)
         p[i].ms_to_die = m->ms_to_die;
         p[i].ms_to_eat = m->ms_to_eat;
         p[i].ms_to_sleep = m->ms_to_sleep;
+        p[i].last_meal = 0;
         p[i].write_lock = &m->write_lock;
         p[i].death_lock = &m->death_lock;
         if (i == 0)
@@ -285,10 +335,10 @@ int main(int argc, char **argv)
     monitor.forks = malloc(sizeof(pthread_mutex_t) * monitor.philo_amt);
     if (!monitor.forks)
         return (free(philos), write(2, "malloc for forks failed\n", 25), 1);
-    if (create_mutexes(&monitor))
+    if (!create_mutexes(&monitor))
         return (free(philos), free(monitor.forks), 1);
     init_philosophers(philos, &monitor, argv, argc);
-    if (create_threads(philos, &monitor))
+    if (!create_threads(philos, &monitor))
         return (1);
     free_and_destroy(NULL, &monitor, philos);
     return (0);
