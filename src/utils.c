@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_atoi.c                                          :+:      :+:    :+:   */
+/*   utils.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 17:23:58 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/04 01:06:05 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/06 18:10:12 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ long	ft_atoi(const char *str)
 	int		i;
 	long	num;
 	long	prev;
-	long		sign;
+	long	sign;
 
 	num = 0;
 	i = 0;
@@ -55,14 +55,14 @@ long	ft_atoi(const char *str)
 	return (sign * num);
 }
 
-size_t  ft_strlen(char *s)
+size_t	ft_strlen(char *s)
 {
-    unsigned int    i;
+	unsigned int	i;
 
-    if (!s)
-        return(0);
-    i = 0;
-    while (s[i])
-        i++;
-    return (i);
+	if (!s)
+		return (0);
+	i = 0;
+	while (s[i])
+		i++;
+	return (i);
 }
