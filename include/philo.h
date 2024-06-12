@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/06 18:16:42 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/12 23:31:59 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,9 +71,6 @@ long long	get_time(void);
 void		get_arguments(t_monitor *m, char **argv, int argc);
 void		init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc);
 /* philo_functions.c */
-void		think(t_philos *p);
-void		snooze(t_philos *p);
-int			eat(t_philos *p);
 void		*philosophize(void *philo);
 /* supervisor.c */
 void		supervise(t_monitor *m);

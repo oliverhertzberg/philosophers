@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:10:11 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/06 18:17:04 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/12 23:28:58 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ static int	is_dead(t_monitor *m)
 
 void	supervise(t_monitor *m)
 {
-	if (m->meals_to_eat == 0)
+	if (m->meals_to_eat == 0 || m->philo_amt == 1)
 	{
 		while (1)
 		{
