@@ -29,15 +29,11 @@ typedef struct s_philos
 	pthread_mutex_t	*death_lock;
 	unsigned int	philo_num;
 	long long		last_meal;
-	int				meals_to_eat;
-	int				meals_eaten;
+	int			meals_eaten;
 	long			philo_amt;
-	long			ms_to_die;
 	long			ms_to_eat;
 	long			ms_to_sleep;
-	int				eaten_enough;
-	int				*death;
-	long long		*start_time;
+	int			*death;
 }	t_philos;
 
 typedef struct s_monitor
@@ -49,10 +45,7 @@ typedef struct s_monitor
 	t_philos		*philos;
 	long			philo_amt;
 	long			ms_to_die;
-	long			ms_to_eat;
-	long			ms_to_sleep;
 	long			meals_to_eat;
-	long long		start_time;
 	int				death;
 }	t_monitor;
 
