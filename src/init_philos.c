@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:14:39 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/06 17:58:07 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 17:08:34 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,8 @@ void	init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc)
 		p[i].ms_to_die = m->ms_to_die;
 		p[i].ms_to_eat = m->ms_to_eat;
 		p[i].ms_to_sleep = m->ms_to_sleep;
-		p[i].last_meal = 0;
 		p[i].eaten_enough = 0;
+		p[i].last_meal = get_time();
 		p[i].write_lock = &m->write_lock;
 		p[i].death_lock = &m->death_lock;
 		if (i == 0)

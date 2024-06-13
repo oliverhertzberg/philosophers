@@ -6,65 +6,69 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:10:11 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/12 23:28:58 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 18:47:04 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/philo.h"
 
-static int	are_all_done_eating_or_dead(t_monitor *m)
+static int	is_dead(t_monitor *m, t_philos *p)
 {
 	int	i;
-
+	
 	i = -1;
 	while (++i < m->philo_amt)
 	{
-		pthread_mutex_lock(&m->philos[i].meal_lock);
-		if (m->philos[i].eaten_enough == 1)
+		pthread_mutex_lock(&p[i].meal_lock);
+		if ((get_time() - p[i].last_meal) > m->ms_to_die)
 		{
-			pthread_mutex_unlock(&m->philos[i].meal_lock);
-			return (1);
+			pthread_mutex_unlock(&p[i].meal_lock);
+			pthread_mutex_lock(p->death_lock);
+			*p->death = 1;
+			write_state(&p[i], "died");
+			pthread_mutex_unlock(p->death_lock);
+			return (1);	
 		}
-		pthread_mutex_unlock(&m->philos[i].meal_lock);
+		pthread_mutex_unlock(&p[i].meal_lock);
+
 	}
 	return (0);
 }
 
-static int	is_dead(t_monitor *m)
+static int	all_ate(t_philos *p)
 {
 	int	i;
 
 	i = -1;
-	while (++i < m->philo_amt)
+	while (++i < p->philo_amt)
 	{
-		pthread_mutex_lock(&m->philos[i].meal_lock);
-		if (m->philos[i].eaten_enough == 1)
+		pthread_mutex_lock(&p[i].meal_lock);
+		if (p[i].meals_eaten != p->meals_to_eat)
 		{
-			pthread_mutex_unlock(&m->philos[i].meal_lock);
-			pthread_mutex_lock(&m->death_lock);
-			m->death = 1;
-			pthread_mutex_unlock(&m->death_lock);
-			write_state(&m->philos[i], "died");
-			return (1);
+			pthread_mutex_unlock(&p[i].meal_lock);
+			return (0);
 		}
-		pthread_mutex_unlock(&m->philos[i].meal_lock);
+		pthread_mutex_unlock(&p[i].meal_lock);
 	}
-	return (0);
+	pthread_mutex_lock(p->death_lock);
+	*p->death = 1;
+	pthread_mutex_unlock(p->death_lock);
+	return (1);
 }
 
 void	supervise(t_monitor *m)
 {
-	if (m->meals_to_eat == 0 || m->philo_amt == 1)
+	if (m->philo_amt == 1)
 	{
-		while (1)
-		{
-			if (is_dead(m))
-				return ;
-		}
+		ft_usleep(m->ms_to_die);
+		write_state(&m->philos[0], "died");
+		return ;
 	}
 	while (1)
 	{
-		if (are_all_done_eating_or_dead(m))
+		if (is_dead(m, m->philos) == 1)
+			return ;
+		if (m->meals_to_eat && all_ate(m->philos))
 			return ;
 	}
 }

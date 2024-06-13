@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/12 23:31:59 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 18:48:47 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,6 @@ typedef struct s_philos
 	pthread_mutex_t	*death_lock;
 	unsigned int	philo_num;
 	long long		last_meal;
-	long long		end_meal;
 	int				meals_to_eat;
 	int				meals_eaten;
 	long			philo_amt;
@@ -77,6 +76,7 @@ void		supervise(t_monitor *m);
 /* utils .c */
 long		ft_atoi(const char *str);
 size_t		ft_strlen(char *s);
+int			ft_usleep(size_t milliseconds);
 /* write_state.c */
 void		write_state(t_philos *p, char *state);
 
