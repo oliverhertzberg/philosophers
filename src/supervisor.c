@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:10:11 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 19:11:01 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 22:15:47 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ static int	is_dead(t_monitor *m, t_philos *p)
 	return (0);
 }
 
-static int	all_ate(t_philos *p)
+static int	all_ate(t_philos *p, t_monitor *m)
 {
 	int	i;
 
@@ -42,7 +42,7 @@ static int	all_ate(t_philos *p)
 	while (++i < p->philo_amt)
 	{
 		pthread_mutex_lock(&p[i].meal_lock);
-		if (p[i].meals_eaten != p->meals_to_eat)
+		if (p[i].meals_eaten != m->meals_to_eat)
 		{
 			pthread_mutex_unlock(&p[i].meal_lock);
 			return (0);
@@ -60,6 +60,9 @@ void	supervise(t_monitor *m)
 	if (m->philo_amt == 1)
 	{
 		ft_usleep(m->ms_to_die);
+		pthread_mutex_lock(&m->death_lock);
+		m->death = 1;
+		pthread_mutex_unlock(&m->death_lock);
 		write_state(&m->philos[0], "died");
 		return ;
 	}
@@ -67,7 +70,7 @@ void	supervise(t_monitor *m)
 	{
 		if (is_dead(m, m->philos) == 1)
 			return ;
-		if (m->meals_to_eat && all_ate(m->philos))
+		if (m->meals_to_eat && all_ate(m->philos, m))
 			return ;
 	}
 }

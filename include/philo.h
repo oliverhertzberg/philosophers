@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 18:48:47 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 22:08:02 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,11 +29,12 @@ typedef struct s_philos
 	pthread_mutex_t	*death_lock;
 	unsigned int	philo_num;
 	long long		last_meal;
-	int			meals_eaten;
+	long long		*start_time;
+	int				meals_eaten;
 	long			philo_amt;
 	long			ms_to_eat;
 	long			ms_to_sleep;
-	int			*death;
+	int				*death;
 }	t_philos;
 
 typedef struct s_monitor
@@ -43,6 +44,7 @@ typedef struct s_monitor
 	pthread_mutex_t	write_lock;
 	pthread_mutex_t	death_lock;
 	t_philos		*philos;
+	long long		start_time;
 	long			philo_amt;
 	long			ms_to_die;
 	long			meals_to_eat;
@@ -60,7 +62,6 @@ int			create_mutexes(t_monitor *m);
 /* get_time.c */
 long long	get_time(void);
 /* init_philos.c */
-void		get_arguments(t_monitor *m, char **argv, int argc);
 void		init_philosophers(t_philos *p, t_monitor *m, char **argv, int argc);
 /* philo_functions.c */
 void		*philosophize(void *philo);

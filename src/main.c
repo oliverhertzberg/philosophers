@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/21 15:02:38 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 20:02:16 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 22:08:43 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@ static int	create_threads(t_philos *p, t_monitor *m)
 	int	i;
 
 	i = -1;
+	m->start_time = get_time();
 	while (++i < m->philo_amt)
 	{
 		if (pthread_create
