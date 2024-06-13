@@ -16,7 +16,6 @@ static int	create_threads(t_philos *p, t_monitor *m)
 {
 	int	i;
 
-	m->start_time = get_time();
 	i = -1;
 	while (++i < m->philo_amt)
 	{
