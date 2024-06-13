@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:07:24 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 18:25:15 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 19:05:04 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,7 +83,9 @@ void	*philosophize(void *philo)
 		ft_usleep(p->ms_to_die);
 		return (philo);
 	}
+	pthread_mutex_lock(&p->meal_lock);
 	p->last_meal = get_time();
+	pthread_mutex_unlock(&p->meal_lock);
 	if (p->philo_num % 2 == 0)
 		ft_usleep(1);
 	pthread_mutex_lock(p->death_lock);

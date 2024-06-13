@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:10:11 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 18:47:04 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/13 19:11:01 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 static int	is_dead(t_monitor *m, t_philos *p)
 {
 	int	i;
-	
+
 	i = -1;
 	while (++i < m->philo_amt)
 	{
@@ -27,10 +27,9 @@ static int	is_dead(t_monitor *m, t_philos *p)
 			*p->death = 1;
 			write_state(&p[i], "died");
 			pthread_mutex_unlock(p->death_lock);
-			return (1);	
+			return (1);
 		}
 		pthread_mutex_unlock(&p[i].meal_lock);
-
 	}
 	return (0);
 }
