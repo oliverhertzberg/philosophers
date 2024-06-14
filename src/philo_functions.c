@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:07:24 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 22:09:43 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/14 20:57:33 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,8 @@ void	*philosophize(void *philo)
 	p = (t_philos *)philo;
 	if (p->philo_amt == 1)
 	{
-		while (!*p->death)
+		write_state(p, "has taken a fork");
+		while (continue_sim(p, NULL, NULL))
 			ft_usleep(1);
 		return (philo);
 	}

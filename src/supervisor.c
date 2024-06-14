@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:10:11 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/13 22:15:47 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/14 20:53:28 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,10 +60,10 @@ void	supervise(t_monitor *m)
 	if (m->philo_amt == 1)
 	{
 		ft_usleep(m->ms_to_die);
+		write_state(&m->philos[0], "died");
 		pthread_mutex_lock(&m->death_lock);
 		m->death = 1;
 		pthread_mutex_unlock(&m->death_lock);
-		write_state(&m->philos[0], "died");
 		return ;
 	}
 	while (1)
