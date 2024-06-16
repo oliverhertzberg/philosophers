@@ -6,12 +6,12 @@
 #    By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/21 15:18:39 by ohertzbe          #+#    #+#              #
-#    Updated: 2024/06/12 22:57:11 by ohertzbe         ###   ########.fr        #
+#    Updated: 2024/06/16 13:29:09 by ohertzbe         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC := cc
-CFLAGS := -g -Wall -Wextra -Werror
+CFLAGS := -fsanitize=thread -g -Wall -Wextra -Werror
 NAME := philo
 
 HEADER := -I ./include
@@ -23,7 +23,7 @@ OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CC) $(OBJ) $(HEADER) -o $(NAME)
+	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
 obj/%.o: src/%.c
 	@mkdir -p obj

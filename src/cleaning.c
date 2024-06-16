@@ -6,7 +6,7 @@
 /*   By: ohertzbe <ohertzbe@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/04 01:12:36 by ohertzbe          #+#    #+#             */
-/*   Updated: 2024/06/06 17:54:44 by ohertzbe         ###   ########.fr       */
+/*   Updated: 2024/06/16 13:31:44 by ohertzbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,8 @@ void	destroy_fork_mutex(t_monitor *m)
 
 void	free_and_destroy(char *s, t_monitor *m, t_philos *p)
 {
+	(void)m;
+	(void)p;
 	if (s)
 		write(2, &s, ft_strlen(s));
 	destroy_fork_mutex(m);
