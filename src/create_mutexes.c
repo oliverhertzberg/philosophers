@@ -17,7 +17,7 @@ int	init_meal_mutex(t_monitor *m)
 	int	i;
 
 	i = -1;
-	while (i++ < m->philo_amt)
+	while (++i < m->philo_amt)
 	{
 		if (pthread_mutex_init(&(m->philos[i].meal_lock), NULL) != 0)
 		{
